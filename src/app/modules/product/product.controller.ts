@@ -1,115 +1,124 @@
-import { Request, Response } from "express";
-import { ProductService } from "./product.service";
-import ProductValidationSchema from "./product.zod.validation";
-import mongoose from "mongoose";
+import { NextFunction, Request, Response } from 'express';
+import { ProductService } from './product.service';
 
-const createProduct = async (req: Request, res: Response) => {
+const createProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
     // const validateData = ProductValidationSchema.parse(req.body)
     const productData = await ProductService.createProductDataIntoDB(req.body);
     res.status(200).json({
-      message: "Bike created successfully",
+      message: 'Bike created successfully',
       success: true,
       data: productData,
     });
-  }catch (err : any) {
-      res.status(500).json({
-        message: "Validation failed",
-        success: false,
-        error: err,
-        stack: err.stack,
-      });
+  } catch (err: any) {
+    next(err);
   }
-}
+};
 
-const getAllBikes = async (req: Request, res: Response) => {
+const getAllBikes = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { searchTerm } = req.query as { searchTerm?: string };
-    // const validateData = ProductValidationSchema.parse(req.body)
-    const bikesData = await ProductService.getAllBikesFromDB(searchTerm?.trim());
+    const queryKeys = Object.keys(req.query);
+    // Check for invalid query parameters
+    if (
+      queryKeys.length > 1 ||
+      (queryKeys.length === 1 &&
+        (queryKeys[0] !== 'searchTerm' || !req.query.searchTerm))
+    ) {
+      res.status(404).json({
+        message:
+          "Invalid query parameter(s). Only 'searchTerm' is allowed. with the 'key=value' format",
+        success: false,
+      });
+    }
+    const searchTerm = req.query.searchTerm || null;
+    const bikesData = await ProductService.getAllBikesFromDB(searchTerm);
+    // Handle no matching documents case
+    if (bikesData.length === 0) {
+      res.status(404).json({
+        message: 'No matching data found in the database',
+        success: false,
+      });
+    }
     res.status(200).json({
-      message: "Bikes retrieved successfully",
+      message: 'Bikes retrieved successfully',
       success: true,
       data: bikesData,
     });
-  }catch (err : any) {
-      res.status(500).json({
-        message: "Validation failed",
-        success: false,
-        error: err,
-        stack: err.stack,
-      });
+  } catch (err: any) {
+    next(err);
   }
-}
+};
 
-const getSingleBike = async (req: Request, res: Response) => {
+const getSingleBike = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const { bikeId } = req.params;
-    const specificBikeData = await ProductService.getSingleBikeFromDB(bikeId);
-
+    const specifiedBikeData = res.locals.product;
     res.status(200).json({
-      message: "Specific bike retrieved successfully",
+      message: 'Specific bike retrieved successfully',
       success: true,
-      data: specificBikeData,
+      data: specifiedBikeData,
     });
-  }catch (err : any) {
-      res.status(500).json({
-        message: "Validation failed",
-        success: false,
-        error: err,
-        stack: err.stack,
-      });
+  } catch (err: any) {
+    next(err);
   }
-}
+};
 
-const updateSingleBikeData = async (req: Request, res: Response) => {
+const updateSingleBikeData = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const { bikeId } = req.params as { bikeId: string };
-    const updateBikeData = req.body ;
-
-    // Validate if `bikeId` is a valid ObjectId
-    if (!(bikeId)) {
-      return res.status(400).json({
-        message: "Invalid Bike ID",
-        success: false,
-      });
-    }
-
-    // Query the database after validation
-    const specificUpdateBikeData = await ProductService.updateSingleBikeDataIntoDB(bikeId, updateBikeData);
-
-    // If no bike is found with the provided ID
-    if (!specificUpdateBikeData) {
-      return res.status(404).json({
-        message: "Bike not found",
-        success: false,
-      });
-    }
-
-    // Respond with success and the updated bike data
+    const { productId } = req.params as { productId: string };
+    const updateBikeData = req.body;
+    const specificUpdateBikeData =
+      await ProductService.updateSingleBikeDataIntoDB(
+        productId,
+        updateBikeData,
+      );
     res.status(200).json({
-      message: "Bike updated successfully",
+      message: 'Bike updated successfully',
       success: true,
       data: specificUpdateBikeData,
     });
   } catch (err: any) {
-    // Catch any other errors and return a 500 status
-    res.status(500).json({
-      message: "Server error",
-      success: false,
-      error: err.message,
-      stack: err.stack,
-    });
+    next(err);
   }
 };
 
-
-
+const deleteSingleBikeData = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { productId } = req.params;
+    const specificBikeData =
+      await ProductService.deleteSingleBikeFromDB(productId);
+    res.status(200).json({
+      message: 'Bike deleted successfully',
+      success: true,
+      data: {
+        description: 'This bike data is deleted properly from the database',
+        deletedData: specificBikeData,
+      },
+    });
+  } catch (err: any) {
+    next(err);
+  }
+};
 
 export const ProductController = {
   createProduct,
   getAllBikes,
   getSingleBike,
   updateSingleBikeData,
-
-}
+  deleteSingleBikeData,
+};
