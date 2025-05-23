@@ -76,3 +76,11 @@ npm start
 ```
 
 The server should now be running on http://localhost:5000.
+
+## 📬 Contact
+
+**Project Maintainer:** Humayun Kabir          
+📧 Email: humayunkabir6267@gmail.com  
+🐙 GitHub: [@Humayun1318](https://github.com/Humayun1318)
+
+Thank you for exploring **Bike Store API** — contributions, feedback, and ideas are always welcome! 🚀
